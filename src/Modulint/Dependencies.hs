@@ -12,8 +12,10 @@ module Modulint.Dependencies
   ) where
 
 import qualified Control.Monad as Monad
+import           Data.Bifunctor (bimap)
 import qualified Data.Set as Set
 import qualified Data.Map.Strict as Map
+import           Data.Maybe (fromMaybe)
 import qualified Language.Haskell.Exts.Syntax as Syntax
 import qualified Numeric.Natural as Nat
 
@@ -88,7 +90,7 @@ dependencyTargets name (DependencyGraph graph) =
 
 targetsToList :: Targets -> [Target]
 targetsToList (Targets targetMap) =
-  fmap (uncurry Target) $ Map.toList $ targetMap
+  fmap (uncurry Target) $ Map.toList targetMap
 
 
 buildDependencyGraph :: Set.Set Imports.Import -> DependencyGraph
@@ -101,56 +103,17 @@ singletonGraph source target cause =
     Map.singleton source $
       Targets (Map.singleton target (Set.singleton cause))
 
-isSuperTreeOf :: TreeName -> TreeName -> Bool
-isSuperTreeOf (TreeName parent mbParentRest) (TreeName child mbChildRest) =
-  if parent /= child
-  then False
-  else
-    case (mbParentRest, mbChildRest) of
-      (Nothing, Just _) ->
-        True
-
-      (Just _, Nothing) ->
-        False
-
-      (Nothing, Nothing) ->
-        True
-
-      (Just parentRest, Just childRest) ->
-        isSuperTreeOf parentRest childRest
-
 mkImportDependencies :: Imports.Import -> DependencyGraph
 mkImportDependencies imp =
-  mconcat $ do
-    sourceTree <- treeNamesForModule (Imports.importSource imp)
-    targetTree <- treeNamesForModule (Imports.importTarget imp)
+  fromMaybe mempty $ do
+    sourceTree <- moduleNameToTreeName (Imports.importSource imp)
+    targetTree <- moduleNameToTreeName (Imports.importTarget imp)
 
-    -- A.B.C should be allowed to import A.B.D without that import causing
-    -- an implied dependency from A.B.C to A.B, so we filter out any cases
-    -- where the target tree is a parent of the source tree. This will actually
-    -- filter out cases where the dependency was explicitly rather than implied
-    -- (i.e. when A.B.C actually imports A.B), which I've noted in the README
-    -- as a known issue for us to fix later.
-    Monad.guard $ not $ isSuperTreeOf targetTree sourceTree
+    (sourceAncTree, targetAncTree)
+      <- earliestDivergentAncestors sourceTree targetTree
 
-    pure $
-      singletonGraph sourceTree targetTree imp
-
-treeNamesForModule :: Syntax.ModuleName a -> [TreeName]
-treeNamesForModule (Syntax.ModuleName _ name) =
-  go $ moduleNameParts name
-    where
-      go parts =
-        case parts of
-          [] ->
-            []
-
-          (firstPart : restParts) ->
-            let
-              standaloneName = TreeName firstPart Nothing
-              prependName = TreeName firstPart . Just
-            in
-              standaloneName : (map prependName (go restParts))
+    Just $
+      singletonGraph sourceAncTree targetAncTree imp
 
 moduleNameParts :: String -> [String]
 moduleNameParts moduleName =
@@ -161,4 +124,20 @@ moduleNameParts moduleName =
     (onlyPart, _) ->
       [onlyPart]
 
+moduleNameToTreeName :: Syntax.ModuleName a -> Maybe TreeName
+moduleNameToTreeName (Syntax.ModuleName _ name) =
+  foldr (\x -> Just . TreeName x) Nothing $ moduleNameParts name
+
+earliestDivergentAncestors :: TreeName -> TreeName -> Maybe (TreeName, TreeName)
+earliestDivergentAncestors = go
+  where
+    go (TreeName sourceName _) (TreeName targetName Nothing)
+      = Just (TreeName sourceName Nothing, TreeName targetName Nothing) -- this can capture the case where A.B imports A
+    go (TreeName sourceName Nothing) (TreeName targetName (Just _))
+      | sourceName == targetName = Nothing  -- case where A imports A.B - we don't care
+      | otherwise = Just (TreeName sourceName Nothing, TreeName targetName Nothing)
+    go (TreeName sourceName (Just nxtSource)) (TreeName targetName (Just nxtTarget))
+      | sourceName == targetName = Monad.join bimap (TreeName sourceName . Just)
+                               <$> go nxtSource nxtTarget
+      | otherwise = Just (TreeName sourceName Nothing, TreeName targetName Nothing)
 

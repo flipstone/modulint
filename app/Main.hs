@@ -41,7 +41,9 @@ printDirectoryImports directoryPath = do
             putStrLn "No cycles found!"
 
           count -> do
-            putStrLn $ "Found " <> show count <> " cycles"
+            let c | count == 1 = " cycle"
+                  | otherwise  = " cycles"
+            putStrLn $ "Found " <> show count <> c
             mapM_ (uncurry printCycle) (zip [1..] cycles)
             Exit.exitWith (Exit.ExitFailure 1)
 
