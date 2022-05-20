@@ -1,13 +1,13 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c0722a0c9ebb2bb647cb8b1d2b65091c7d7c8bc03379ba6f8b985d7f4529dddb
+-- hash: 9a375d125018b23dfc48b72a3cc5deb7ca233888ead2efa50b1e94dda36bc6d7
 
 name:           modulint
-version:        0.1.0.0
+version:        0.1.0.1
 description:    Please see the README on GitHub at <https://github.com/flipstone/modulint#readme>
 homepage:       https://github.com/flipstone/modulint#readme
 bug-reports:    https://github.com/flipstone/modulint/issues
@@ -49,15 +49,15 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , containers >=0.6 && <0.7
-    , dhall >=1.28 && <1.38
-    , directory >=1.3 && <1.4
-    , file-embed >=0.0 && <0.1
-    , filepath >=1.4 && <1.5
+    , containers ==0.6.*
+    , dhall >=1.28 && <1.41
+    , directory ==1.3.*
+    , file-embed ==0.0.*
+    , filepath ==1.4.*
     , haskell-src-exts >=1.20 && <1.24
     , optparse-applicative >=0.14 && <0.17
     , text
-    , unix >=2.7 && <2.8
+    , unix ==2.7.*
   default-language: Haskell2010
 
 executable modulint
@@ -70,16 +70,16 @@ executable modulint
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , containers >=0.6 && <0.7
-    , dhall >=1.28 && <1.38
-    , directory >=1.3 && <1.4
-    , file-embed >=0.0 && <0.1
-    , filepath >=1.4 && <1.5
+    , containers ==0.6.*
+    , dhall >=1.28 && <1.41
+    , directory ==1.3.*
+    , file-embed ==0.0.*
+    , filepath ==1.4.*
     , haskell-src-exts >=1.20 && <1.24
     , modulint
     , optparse-applicative >=0.14 && <0.17
     , text
-    , unix >=2.7 && <2.8
+    , unix ==2.7.*
   default-language: Haskell2010
 
 test-suite modulint-test
@@ -94,14 +94,14 @@ test-suite modulint-test
       HUnit
     , base >=4.7 && <5
     , bytestring
-    , containers >=0.6 && <0.7
-    , dhall >=1.28 && <1.38
-    , directory >=1.3 && <1.4
-    , file-embed >=0.0 && <0.1
-    , filepath >=1.4 && <1.5
+    , containers ==0.6.*
+    , dhall >=1.28 && <1.41
+    , directory ==1.3.*
+    , file-embed ==0.0.*
+    , filepath ==1.4.*
     , haskell-src-exts >=1.20 && <1.24
     , modulint
     , optparse-applicative >=0.14 && <0.17
     , text
-    , unix >=2.7 && <2.8
+    , unix ==2.7.*
   default-language: Haskell2010
