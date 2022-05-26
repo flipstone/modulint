@@ -24,7 +24,7 @@ your project. `cd` to your product directory and run the following command:
 
 or
 
-`stack exec modulint --init`
+`stack exec modulint -- --init`
 
 This will create an empty modulint configuration file at `modulint.dhall` in
 the root of your project plus a `.modulint/package.dhall` file that defines the
