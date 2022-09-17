@@ -1,6 +1,7 @@
 module Modulint.Options
   ( Options(..)
   , parseOptions
+  , parseGivenOptions
   ) where
 
 import qualified Options.Applicative as Opt
@@ -14,6 +15,10 @@ data Options =
 parseOptions :: IO Options
 parseOptions =
   Opt.execParser optionsInfo
+
+parseGivenOptions :: [String] -> IO Options
+parseGivenOptions =
+  Opt.handleParseResult . Opt.execParserPure Opt.defaultPrefs optionsInfo
 
 optionsInfo :: Opt.ParserInfo Options
 optionsInfo =
@@ -31,4 +36,3 @@ optionsParser =
           <> Opt.showDefault
           )
     <*> Opt.flag False True (Opt.long "init")
-

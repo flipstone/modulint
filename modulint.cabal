@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c0722a0c9ebb2bb647cb8b1d2b65091c7d7c8bc03379ba6f8b985d7f4529dddb
+-- hash: 142878bf5a79dc318e1fb14659a543356115c1de3183caa934d7e746f12981c0
 
 name:           modulint
 version:        0.1.0.0
@@ -25,83 +25,173 @@ source-repository head
   type: git
   location: https://github.com/flipstone/modulint
 
+flag ci
+  description: More strict ghc options used for development and ci, not intended for end-use.
+  manual: True
+  default: False
+
 library
   exposed-modules:
+      CompatGHC
+      Modulint
+      Modulint.Directory
+      Modulint.Options
       Modulint.Check
       Modulint.Config
-      Modulint.Config.Defaults
-      Modulint.Directory
-      Modulint.ErrorMessage
-      Modulint.Imports
-      Modulint.Imports.Load
-      Modulint.Imports.Types
-      Modulint.Initialize
-      Modulint.Main
-      Modulint.ModuleName
-      Modulint.Options
-      Modulint.Qualification
+      Modulint.Import
+      Modulint.Scheme
+      Modulint.Scheme.Alias
+      Modulint.Scheme.Package
+      Modulint.Scheme.Safe
+      Modulint.Scheme.Scheme
       Modulint.TreeName
+      Modulint.CheckFailure
+      -- Scratch
   other-modules:
       Paths_modulint
   hs-source-dirs:
       src
-  ghc-options: -Wall -Werror
+      plugin
+  ghc-options:
+              -Wall
+              -Wcompat
+              -O2
+  if flag(ci)
+    ghc-options:
+      -Werror
+      -Wmissing-export-lists
+      -Wmissing-import-lists
+      -Wmissing-local-signatures
+      -Wmissing-home-modules
+      -Wmissed-specialisations
+      -Wmonomorphism-restriction
+
+      -Wcompat-unqualified-imports
+      -Wpartial-fields
+      -Wcpp-undef
+      -Wredundant-constraints
+      -Wunused-matches
+      -Wunused-packages
+      -Wunused-type-patterns
+      -fwrite-ide-info
+
   build-depends:
       base >=4.7 && <5
-    , bytestring
-    , containers >=0.6 && <0.7
-    , dhall >=1.28 && <1.38
-    , directory >=1.3 && <1.4
-    , file-embed >=0.0 && <0.1
-    , filepath >=1.4 && <1.5
-    , haskell-src-exts >=1.20 && <1.24
-    , optparse-applicative >=0.14 && <0.17
+    , containers ==0.6.*
+    , dhall >=1.28 && <2
+    , directory >=1.3
+    , filepath >=1.4
+    -- , haddock-api == 2.26.*
+    , ghc
+    , optparse-applicative >=0.14 && <0.18
     , text
-    , unix >=2.7 && <2.8
+    , unix >= 2.7
+
+    -- ghc-boot is only needed for ghc 9.0, but apparently not for 9.2 or 9.4
+  if impl(ghc <= 9.0.2)
+    build-depends:
+      ghc-boot
+
   default-language: Haskell2010
+
+-- library
+--   exposed-modules:
+--       Modulint
+--   other-modules:
+--       Paths_modulint
+--   hs-source-dirs:
+
+--   ghc-options:
+--               -Wall
+--               -Werror
+--               -Wcompat
+--               -- -Wmissing-export-lists
+--               -Wmissing-import-lists
+--               -- -Wmissing-local-signatures
+--               -Wmissing-home-modules
+--               -Wmissed-specialisations
+--               -- -Wall-missed-specialisations
+--               -Wmonomorphism-restriction
+
+--               -Wcompat-unqualified-imports
+--               -Wpartial-fields
+--               -Wcpp-undef
+--               -Wredundant-constraints
+--               -Wunused-matches
+--               -Wunused-packages
+--               -Wunused-type-patterns
+--               -fprint-explicit-runtime-reps
+--               -fwrite-ide-info
+--   build-depends:
+--       base >=4.7 && <5,
+--       modulint-internal
+--   default-language: Haskell2010
 
 executable modulint
   main-is: Main.hs
   other-modules:
+      Config.Defaults
+      Config.Initialize
       Paths_modulint
   hs-source-dirs:
       app
-  ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
+
+  ghc-options:
+      -Wall
+      -Wcompat
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+      -O2
+  if flag(ci)
+    ghc-options:
+       -Werror
+    -- -Wmissing-export-lists
+    -- -Wmissing-import-lists
+    -- -Wmissing-local-signatures
+      -Wmissing-home-modules
+      -Wmissed-specialisations
+      -- -Wall-missed-specialisations
+      -Wmonomorphism-restriction
+
+      -Wcompat-unqualified-imports
+      -Wpartial-fields
+      -Wcpp-undef
+      -Wredundant-constraints
+      -Wunused-matches
+      -Wunused-packages
+      -Wunused-type-patterns
+      -fwrite-ide-info
+
   build-depends:
       base >=4.7 && <5
     , bytestring
-    , containers >=0.6 && <0.7
-    , dhall >=1.28 && <1.38
-    , directory >=1.3 && <1.4
-    , file-embed >=0.0 && <0.1
-    , filepath >=1.4 && <1.5
-    , haskell-src-exts >=1.20 && <1.24
+    , directory >=1.3
+    , file-embed ==0.0.*
+    , filepath >=1.4
     , modulint
-    , optparse-applicative >=0.14 && <0.17
-    , text
-    , unix >=2.7 && <2.8
   default-language: Haskell2010
 
-test-suite modulint-test
-  type: exitcode-stdio-1.0
-  main-is: Main.hs
-  other-modules:
-      Paths_modulint
-  hs-source-dirs:
-      test
-  ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      HUnit
-    , base >=4.7 && <5
-    , bytestring
-    , containers >=0.6 && <0.7
-    , dhall >=1.28 && <1.38
-    , directory >=1.3 && <1.4
-    , file-embed >=0.0 && <0.1
-    , filepath >=1.4 && <1.5
-    , haskell-src-exts >=1.20 && <1.24
-    , modulint
-    , optparse-applicative >=0.14 && <0.17
-    , text
-    , unix >=2.7 && <2.8
-  default-language: Haskell2010
+-- test-suite modulint-test
+--   type: exitcode-stdio-1.0
+--   main-is: Main.hs
+--   other-modules:
+--       Paths_modulint
+--   hs-source-dirs:
+--       test
+--   ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
+--   build-depends:
+--       HUnit
+--     , base >=4.7 && <5
+--     , bytestring
+--     , containers ==0.6.*
+--     , dhall >=1.28 && <2
+--     , directory ==1.3.*
+--     , file-embed ==0.0.*
+--     , filepath ==1.4.*
+--     , haskell-src-exts >=1.20 && <1.24
+--     , modulint
+--     , optparse-applicative >=0.14 && <0.17
+--     , text
+--     , unix ==2.7.*
+--   default-language: Haskell2010

@@ -4,9 +4,4 @@
 -- setting only `sourcePaths`. You can add you configuration values below
 -- as more field slike `sourcePaths`. Consult the package.dhall file for a
 -- reference to settings and the provided defaults.
-let
-  Ml = ./.modulint/package.dhall
-in
-  Ml.Config::
-  { sourcePaths = [ "src" ]
-  }
+let Ml = ./.modulint/package.dhall in Ml.Config::{ sourcePaths = [ "src" ] }

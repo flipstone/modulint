@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Modulint.Config.Defaults
+module Config.Defaults
   ( packageFile
   , initialModulintFile
   ) where
@@ -9,8 +9,8 @@ import qualified Data.FileEmbed as FileEmbed
 
 packageFile :: BS.ByteString
 packageFile =
-  $(FileEmbed.embedFile "src/Modulint/Config/package.dhall")
+  $(FileEmbed.embedFile "app/Config/package.dhall")
 
 initialModulintFile :: BS.ByteString
 initialModulintFile =
-  $(FileEmbed.embedFile "src/Modulint/Config/modulint.dhall")
+  $(FileEmbed.embedFile "app/Config/modulint.dhall")

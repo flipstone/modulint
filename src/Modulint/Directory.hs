@@ -12,8 +12,8 @@ foldDirectory :: (FilePath -> Bool)
               -> a
               -> FilePath
               -> IO a
-foldDirectory isFileOfInterest handleFile initial =
-  go initial
+foldDirectory isFileOfInterest handleFile =
+  go
     where
       foldEntry accum path = do
         status <- Posix.getFileStatus path

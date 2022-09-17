@@ -1,4 +1,4 @@
-module Modulint.Initialize
+module Config.Initialize
   ( initializeConfigPath
   ) where
 
@@ -7,7 +7,7 @@ import qualified System.Directory as Dir
 import           System.FilePath ((</>))
 import qualified System.FilePath as FilePath
 
-import qualified Modulint.Config.Defaults as Defaults
+import qualified Config.Defaults as Defaults
 
 initializeConfigPath :: FilePath -> IO ()
 initializeConfigPath configPath = do
@@ -36,4 +36,3 @@ initializeConfigPath configPath = do
   else do
     BS.writeFile configPath Defaults.initialModulintFile
     putStrLn ("Installed default modulint configuration file at " <> configPath)
-

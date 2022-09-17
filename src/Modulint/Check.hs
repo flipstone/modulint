@@ -2,44 +2,47 @@ module Modulint.Check
   ( CheckFailure(..)
   , CheckedDependency(..)
   , ImportChecker
-  , checkImports
   , newImportChecker
-  ) where
+  , checkModule
+  , errorMessagesFromList
+  , toSDoc
+  )
+where
 
-import qualified Data.Foldable as Fold
-import qualified Data.STRef as STRef
 import qualified Control.Monad as Monad
 import qualified Control.Monad.ST as ST
+import qualified Data.Foldable as Fold
+import qualified Data.Map.Strict as M
+import qualified Data.STRef as STRef
 
+import qualified CompatGHC as GHC
+import Modulint.CheckFailure
+    ( CheckFailure(DependencyViolation,EncapsulationViolation,QualificationViolation), CheckedDependency(CheckedDependency, dependencySource, dependencyTarget), errorMessagesFromList, toSDoc )
 import qualified Modulint.Config as Config
-import qualified Modulint.Imports as Imports
-import qualified Modulint.Qualification as Qualification
+import qualified Modulint.Import as Import
+import qualified Modulint.Scheme as Scheme
 import qualified Modulint.TreeName as TreeName
 
 data ImportChecker =
   ImportChecker
     { dependencies           :: [CheckedDependency]
     , encapsulatedTrees      :: [TreeName.TreeName]
-    , allowedQualifications  :: Qualification.AllowedSchemes
+    , allowedQualifications  :: Scheme.AllowedSchemes
     }
 
-data CheckedDependency =
-  CheckedDependency
-    { dependencySource :: TreeName.TreeName
-    , dependencyTarget :: TreeName.TreeName
-    }
+checkModule :: ImportChecker -> Either String GHC.HsModule  -> Either String [CheckFailure]
+checkModule importChecker =
+  (checkModuleImports importChecker =<<)
 
-data CheckFailure
-  = DependencyViolation    Imports.Import CheckedDependency
-  | EncapsulationViolation Imports.Import TreeName.TreeName
-  | QualificationViolation Imports.Import [Qualification.Scheme]
-
+checkModuleImports :: ImportChecker -> GHC.HsModule -> Either String [CheckFailure]
+checkModuleImports checker =
+  fmap (checkImports checker) . Import.getModuleImports
 
 newImportChecker :: Config.Config -> ImportChecker
 newImportChecker config =
   let
     explodeDependencies decl =
-      map (\dep -> CheckedDependency (Config.moduleTree decl) dep)
+      fmap (CheckedDependency (Config.moduleTree decl))
       $ Config.treeDependencies decl
 
     configuredDependencies =
@@ -55,7 +58,7 @@ newImportChecker config =
 
 checkImports :: Foldable f
              => ImportChecker
-             -> f Imports.Import
+             -> f Import.Import
              -> [CheckFailure]
 checkImports importChecker imports =
   ST.runST $ do
@@ -65,7 +68,7 @@ checkImports importChecker imports =
 
 checkImport :: STRef.STRef s [CheckFailure]
             -> ImportChecker
-            -> Imports.Import
+            -> Import.Import
             -> ST.ST s ()
 checkImport failures checker imp = do
   Fold.traverse_
@@ -77,20 +80,18 @@ checkImport failures checker imp = do
     (encapsulatedTrees checker)
 
   let
-    targetName = Imports.importedModule imp
+    targetName = Import.importedModule imp
 
   Fold.traverse_
     (checkImportQualification failures imp)
-    (Qualification.lookupAllowedSchemes targetName (allowedQualifications checker))
+    (M.lookup targetName (allowedQualifications checker))
 
 checkImportAgainstDependency :: STRef.STRef s [CheckFailure]
-                             -> Imports.Import
+                             -> Import.Import
                              -> CheckedDependency
                              -> ST.ST s ()
 checkImportAgainstDependency failures imp dep = do
   let
-    srcModule       = Imports.srcModule imp
-    importedModule  = Imports.importedModule imp
     depSource       = dependencySource dep
     depTarget       = dependencyTarget dep
 
@@ -100,40 +101,38 @@ checkImportAgainstDependency failures imp dep = do
     -- dependency is declared for. This is -- once a dependency is declared, we
     -- don't allow dependency targets to import modules that depend on them.
     dependencyViolated  =
-      TreeName.treeContainsModule depTarget srcModule
-      && TreeName.treeContainsModule depSource importedModule
+      TreeName.treeContainsModule depTarget (Import.srcModule imp)
+      && TreeName.treeContainsModule depSource (Import.importedModule imp)
 
   Monad.when
     dependencyViolated
     (addFailure failures (DependencyViolation imp dep))
 
 checkImportAgainstEncapsulation :: STRef.STRef s [CheckFailure]
-                                -> Imports.Import
+                                -> Import.Import
                                 -> TreeName.TreeName
                                 -> ST.ST s ()
 checkImportAgainstEncapsulation failures imp encapsulatedTree = do
   let
-    srcModule       = Imports.srcModule imp
-    importedModule  = Imports.importedModule imp
 
     -- If the module being imported belongs to an encapsulated module tree
     -- then it may only be directly imported from within that tree. Imports
     -- by modules outside the encapsulated tree constitute a violation.
     encapsulationViolated =
-      TreeName.treeStrictlyContainsModule encapsulatedTree importedModule
-      && (not $ TreeName.treeContainsModule encapsulatedTree srcModule)
+      TreeName.treeStrictlyContainsModule encapsulatedTree (Import.importedModule imp)
+      && (not . TreeName.treeContainsModule encapsulatedTree $ Import.srcModule imp)
 
   Monad.when
     encapsulationViolated
     (addFailure failures (EncapsulationViolation imp encapsulatedTree))
 
 checkImportQualification :: STRef.STRef s [CheckFailure]
-                         -> Imports.Import
-                         -> [Qualification.Scheme]
+                         -> Import.Import
+                         -> [Scheme.Scheme]
                          -> ST.ST s ()
 checkImportQualification failures imp alloweds =
   if
-    Imports.qualification imp `elem` alloweds
+    elem (Scheme.buildScheme . GHC.unLoc $ Import.importDecl imp) alloweds
   then
     pure ()
   else
@@ -141,4 +140,4 @@ checkImportQualification failures imp alloweds =
 
 addFailure :: STRef.STRef s [CheckFailure] -> CheckFailure -> ST.ST s ()
 addFailure failures err =
-  STRef.modifySTRef failures (\errs -> err : errs)
+  STRef.modifySTRef failures (err :)

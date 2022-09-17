@@ -1,13 +1,14 @@
 module Modulint.TreeName
-  ( TreeName
+  (TreeName
   , format
   , isSuperTreeOf
   , parse
   , treeContainsModule
   , treeStrictlyContainsModule
-  ) where
+  )
+where
 
-import qualified Modulint.ModuleName as ModuleName
+import qualified CompatGHC as GHC
 
 data TreeName =
   TreeName String (Maybe TreeName)
@@ -55,21 +56,21 @@ isSuperTreeOf (TreeName parent mbParentRest) (TreeName child mbChildRest) =
       (Just parentRest, Just childRest) ->
         isSuperTreeOf parentRest childRest
 
-treeContainsModule :: TreeName -> ModuleName.ModuleName -> Bool
-treeContainsModule treeName moduleName =
-  isSuperTreeOf treeName (treeNameOfModule moduleName)
+treeContainsModule :: TreeName -> GHC.ModuleName -> Bool
+treeContainsModule treeName modName =
+  isSuperTreeOf treeName (treeNameOfModule modName)
 
-treeStrictlyContainsModule :: TreeName -> ModuleName.ModuleName -> Bool
-treeStrictlyContainsModule treeName moduleName =
+treeStrictlyContainsModule :: TreeName -> GHC.ModuleName -> Bool
+treeStrictlyContainsModule treeName modName =
   let
-    moduleTree = treeNameOfModule moduleName
+    moduleTree = treeNameOfModule modName
   in
-    not (treeName == moduleTree) &&
+    (treeName /= moduleTree) &&
     isSuperTreeOf treeName moduleTree
 
-treeNameOfModule :: ModuleName.ModuleName -> TreeName
-treeNameOfModule moduleName =
-  case parse (ModuleName.toString moduleName) of
+treeNameOfModule :: GHC.ModuleName -> TreeName
+treeNameOfModule modName =
+  case parse (GHC.moduleNameString modName) of
     Right name ->
       name
 
@@ -77,18 +78,17 @@ treeNameOfModule moduleName =
       error $
         concat
           [ "Modulint.TreeName.treeNameOfModule: failed to parse Haskell module name "
-          , ModuleName.format moduleName
+          , GHC.moduleNameString modName
           , " as a TreeName: "
           , err
           , ". This should have been impossible and probably reflects a bug in modulint itself"
           ]
 
 moduleNameParts :: String -> [String]
-moduleNameParts moduleName =
-  case break (== '.') moduleName of
+moduleNameParts modName =
+  case break (== '.') modName of
     (firstPart, '.':rest) ->
       firstPart : moduleNameParts rest
 
     (onlyPart, _) ->
       [onlyPart]
-
