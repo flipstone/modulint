@@ -4,5 +4,5 @@ module PetStore.Pet.Handler where
 -- instead
 import qualified Service.ThirdPartyPetsSite.Implementation as ThirdPartyPetsSite
 
+import PetStore.Pet.Model
 import qualified PetStore.Pet.Model as Model
-

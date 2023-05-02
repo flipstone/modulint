@@ -2,100 +2,122 @@ module Main
   ( main
   ) where
 
-import qualified System.Exit as Exit
-import qualified System.FilePath as FilePath
-
-import qualified CompatGHC as GHC
 import qualified Config.Initialize as Initialize
-import qualified Modulint.Check as Check
-import qualified Modulint.Config as Config
-import qualified Modulint.Directory as Dir
-import qualified Modulint.Options as Options
+import qualified Henforcer.Options as Options
 
 main :: IO ()
 main = do
   opts <- Options.parseOptions
   if Options.initialize opts
     then Initialize.initializeConfigPath (Options.configPath opts)
-    else runChecks opts
+    else putStrLn "The only option currently supported for the executable usage is init."
 
-runChecks :: Options.Options -> IO ()
-runChecks opts = do
-  res <- runWithOpts opts
-  print (fst res)
-  case (length (snd res), length (snd res)) of
-    (0,0) -> do
-      putStrLn "modulint: All checks passed!"
-      Exit.exitSuccess
+-- config <- Config.loadConfigFile (Options.configPath opts)
+-- runWithConfig config
 
-    (errCount,0) -> do
-      putStr $ formatCheckFailures (snd res)
-      putStrLn $ "\nmodulint: " <> show errCount <> " errors found!"
-      Exit.exitWith checksFailed
+-- runWithConfig :: Config.Config -> IO ()
+-- runWithConfig cfg =
+--   GHC.defaultErrorHandler defaultFatalMessager defaultFlushOut $ do
+--       GHC.runGhc (Just libdir) $ do
+--         dflags <- GHC.getSessionDynFlags
+--         GHC.setSessionDynFlags dflags
+--         explodedDirs <- GHC.liftIO $ traverseDir isHaskellFile $ Config.sourcePaths cfg
+--         newTargets <- traverse GHC.guessTargetForFile explodedDirs
+--         GHC.liftIO $ print explodedDirs
+--         GHC.setTargets newTargets
 
-    (0, _parseErrCount) -> do
-      -- FIXME format parse failure messages
-      print $ fst res
+--         graph <- GHC.depanal [] True
+--         let ic = ImportCheck.newImportChecker cfg
+--             docE = Config.allowedDocumentation cfg
+--             topoSorted = Maybe.catMaybes $ fmap GHC.moduleGraphNodeModSum . GHC.flattenSCCs $ GHC.topSortModuleGraph False graph Nothing
 
-      Exit.exitWith moduleParseFailure
+--         -- GHC.liftIO $ print $ fmap GHC.ms_mod_name summaries
+--         GHC.liftIO $ print $ fmap GHC.ms_mod_name topoSorted
+--         haddockErrorsOrRuleFailures <- GHC.liftIO $ checkHaddock docE topoSorted
 
-    (checkErrCount,_parseErrCount) -> do
-      putStrLn $ formatCheckFailures (snd res)
-      putStrLn $ "\nmodulint: " <> show checkErrCount <> " errors found!"
+--         importFailures <- traverse (checkImport ic) topoSorted
 
-      -- FIXME format parse failure messages
-      print $ fst res
+--         case haddockErrorsOrRuleFailures of
+--           Left _ ->
+--             -- TODO: Handle errors
+--             GHC.liftIO $ print ""
+--           Right fails ->
+--             GHC.liftIO . handleFailures $ (fails <> join importFailures)
 
-      Exit.exitWith moduleParseAndChecksFailed
+-- checkImport :: ImportCheck.ImportChecker -> GHC.ModSummary -> GHC.Ghc [GHC.SDoc]
+-- checkImport ic summary = do
+--   parsedMod <- GHC.parseModule summary
+--   let
+--     hsMod = GHC.unLoc $ GHC.pm_parsed_source parsedMod
 
-runWithOpts :: Options.Options -> IO ([String],[Check.CheckFailure])
-runWithOpts opts = do
-  config <- Config.loadConfigFile (Options.configPath opts)
-  flags <- GHC.initDynFlags (GHC.defaultDynFlags GHC.fakeSettings GHC.fakeLlvmConfig)
-  foldSrcPaths flags (Check.newImportChecker config) (Config.sourcePaths config)
+--   pure . fmap ImportCheck.toSDoc $ ImportCheck.checkModule ic hsMod
 
-foldSrcPaths :: Traversable t =>
-                GHC.DynFlags ->
-                Check.ImportChecker ->
-                t FilePath ->
-                IO ([String],[Check.CheckFailure])
-foldSrcPaths flags checker =
-  foldMap (foldSrcPath flags checker)
+-- checkHaddock :: H.DocumentationRules -> [GHC.ModSummary] -> IO (Either H.HaddockError [GHC.SDoc])
+-- checkHaddock docE summaries = do
+--   ifaces <- H.silentlyCreateInterfaces' summaries
+--   case ifaces of
+--     Left err -> do
+--       print err
+--       pure $ pure []
+--     Right [] -> do
+--       putStrLn "No interfaces!"
+--       pure $ pure []
+--     Right xs -> do
+--       let
+--         errOrDocs = ((fmap GHC.ppr . H.checkInterfaces docE)) xs
+--       case errOrDocs of
+--         [] -> do
+--           putStrLn "No docs"
+--           pure $ pure errOrDocs
+--         docs -> do
+--           putStrLn "Docs"
+--           print docs
+--           pure $ pure errOrDocs
 
-foldSrcPath :: GHC.DynFlags
-            -> Check.ImportChecker
-            -> FilePath
-            -> IO ([String],[Check.CheckFailure])
-foldSrcPath flags checker =
-  Dir.foldDirectory isHaskellFile (checkFileMerge flags checker) mempty
+-- handleFailures :: [GHC.SDoc] -> IO ()
+-- handleFailures failures =
+--   case length failures of
+--     0 -> do
+--       putStrLn "No errors found"
+--       Exit.exitSuccess
+--     errCount -> do
+--       putStr $ formatFailures failures
+--       putStrLn $ "\nhenforcer: " <> show errCount <> " errors found!"
+--       Exit.exitWith checksFailed
 
-isHaskellFile :: FilePath -> Bool
-isHaskellFile filePath =
-  FilePath.takeExtension filePath == ".hs"
+-- isHaskellFile :: FilePath -> Bool
+-- isHaskellFile filePath =
+--   FilePath.takeExtension filePath == ".hs"
 
-moduleParseFailure :: Exit.ExitCode
-moduleParseFailure =
-  Exit.ExitFailure 10
+-- checksFailed :: Exit.ExitCode
+-- checksFailed =
+--   Exit.ExitFailure 20
 
-checksFailed :: Exit.ExitCode
-checksFailed =
-  Exit.ExitFailure 20
+-- formatFailures :: [GHC.SDoc] -> String
+-- formatFailures =
+--   GHC.renderWithDefaultContext . GHC.vcat
 
-moduleParseAndChecksFailed :: Exit.ExitCode
-moduleParseAndChecksFailed =
-  Exit.ExitFailure 30
+-- traverseDir :: (FilePath -> Bool)
+--             -> [FilePath]
+--             -> IO [FilePath]
+-- traverseDir isFileOfInterest initial =
+--   let
+--     go accum baseDir = do
+--         contents <- Dir.listDirectory baseDir
 
-formatCheckFailures :: [Check.CheckFailure] -> String
-formatCheckFailures =
-  GHC.renderWithDefaultContext . GHC.vcat . fmap Check.toSDoc
+--         let
+--           fullPaths = fmap (FilePath.combine baseDir) contents
 
-checkFileMerge :: GHC.DynFlags -> Check.ImportChecker -> ([String],[Check.CheckFailure]) -> FilePath -> IO ([String],[Check.CheckFailure])
-checkFileMerge flags importChecker errsAndFailures fileName = do
-  checked <- parseAndCheckFile flags importChecker fileName
-  pure $ case checked of
-    Left parseFailure -> errsAndFailures <> ([parseFailure], mempty)
-    Right x -> errsAndFailures <> (mempty, x)
+--         Monad.foldM foldEntry accum fullPaths
 
-parseAndCheckFile :: GHC.DynFlags -> Check.ImportChecker -> FilePath -> IO (Either String [Check.CheckFailure])
-parseAndCheckFile flags importChecker =
-  fmap (Check.checkModule importChecker) . GHC.runParser flags
+--     foldEntry accum path = do
+--         status <- Posix.getFileStatus path
+
+--         if Posix.isDirectory status then
+--           go accum path
+--         else if Posix.isRegularFile status && isFileOfInterest path then
+--           pure $ accum <> [path]
+--         else
+--           pure accum
+--   in
+--     fmap join $ traverse (go []) initial

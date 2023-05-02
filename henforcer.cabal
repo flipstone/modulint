@@ -1,0 +1,205 @@
+cabal-version: 3.4
+
+name:           henforcer
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/flipstone/henforcer#readme>
+homepage:       https://github.com/flipstone/henforcer#readme
+bug-reports:    https://github.com/flipstone/henforcer/issues
+author:         Flipstone Technology Partners
+maintainer:     development@flipstone.com
+copyright:      2023 Flipstone Technology Partners
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+    data/*.dhall
+
+source-repository head
+  type: git
+  location: https://github.com/flipstone/henforcer
+
+flag ci
+  description: More strict ghc options used for development and ci, not intended for end-use.
+  manual: True
+  default: False
+
+library henforcer-internal
+  exposed-modules:
+      CompatGHC
+      Henforcer.Config
+      Henforcer.Haddock
+      Henforcer.HaddockCheck
+      Henforcer.ImportCheck
+      Henforcer.Options
+  other-modules:
+      Paths_henforcer
+      Henforcer.Haddock.Interface
+      Henforcer.HaddockCheck.DocumentationEnforcements
+      Henforcer.HaddockCheck.DocumentationAmountRule
+      Henforcer.HaddockCheck.DocumentationRule
+      Henforcer.HaddockCheck.ModuleHeaderRule
+      Henforcer.Import
+      Henforcer.Import.Import
+      Henforcer.Import.MaxOpenUnaliasedImports
+      Henforcer.Import.Scheme
+      Henforcer.Import.Scheme.Alias
+      Henforcer.Import.Scheme.Package
+      Henforcer.Import.Scheme.Safe
+      Henforcer.Import.Scheme.Scheme
+      Henforcer.ImportCheck.Check
+      Henforcer.ImportCheck.CheckFailure
+      Henforcer.TreeName
+  hs-source-dirs:
+      src
+
+  ghc-options:
+              -Wall
+              -Wcompat
+              -O2
+  if flag(ci)
+    ghc-options:
+      -Werror
+      -Wmissing-export-lists
+      -Wmissing-home-modules
+      -Wmissed-specialisations
+      -Wmonomorphism-restriction
+      -Wcompat-unqualified-imports
+      -Wpartial-fields
+      -Wcpp-undef
+      -Wredundant-constraints
+      -Wunused-matches
+      -Wunused-type-patterns
+      -fwrite-ide-info
+
+  build-depends:
+      base >=4.7 && <5
+    , containers ==0.6.*
+    , dhall >=1.28 && <2
+    , filepath >=1.4
+    , ghc
+    , haddock-api
+    , optparse-applicative >=0.14 && <0.18
+    , silently >=1.2 && <1.3
+    , text
+    , unliftio
+
+  if impl(ghc >=9.2) && impl(ghc < 9.4)
+    build-depends:
+      haddock-library ==1.10.0
+
+  default-language: Haskell2010
+
+library
+  exposed-modules:
+      Henforcer
+  hs-source-dirs:
+      plugin
+  ghc-options:
+              -Wall
+              -Wcompat
+              -O2
+  if flag(ci)
+    ghc-options:
+      -Werror
+      -Wmissing-export-lists
+      -Wmissing-home-modules
+      -Wmissed-specialisations
+      -Wmonomorphism-restriction
+      -Wcompat-unqualified-imports
+      -Wpartial-fields
+      -Wcpp-undef
+      -Wredundant-constraints
+      -Wunused-matches
+      -Wunused-type-patterns
+      -fwrite-ide-info
+
+  build-depends:
+      henforcer:henforcer-internal
+    , base >=4.7 && <5
+    , containers ==0.6.*
+    , dhall >=1.28 && <2
+    , filepath >=1.4
+    , ghc
+    , haddock-api
+    , optparse-applicative >=0.14 && <0.18
+    , silently >=1.2 && <1.3
+    , text
+    , unliftio
+
+  if impl(ghc >=9.2) && impl(ghc < 9.4)
+    build-depends:
+      haddock-library ==1.10.0
+
+  default-language: Haskell2010
+
+executable henforcer
+  main-is: Main.hs
+  other-modules:
+      Config.Defaults
+      Config.Initialize
+      Paths_henforcer
+  hs-source-dirs:
+      app
+
+  ghc-options:
+      -Wall
+      -Wcompat
+      -threaded
+      -rtsopts
+      -with-rtsopts=-N
+      -O2
+  if flag(ci)
+    ghc-options:
+      -Werror
+      -Wmissing-export-lists
+      -Wmissing-home-modules
+      -Wmissed-specialisations
+      -Wmonomorphism-restriction
+
+      -Wcompat-unqualified-imports
+      -Wpartial-fields
+      -Wcpp-undef
+      -Wredundant-constraints
+      -Wunused-matches
+      -Wunused-type-patterns
+      -fwrite-ide-info
+
+  build-depends:
+      base >=4.7 && <5
+    , bytestring
+    , directory >=1.3
+    , file-embed ==0.0.*
+    , filepath >=1.4
+    , ghc
+    , ghc-paths
+    , haddock-api
+    , henforcer:henforcer-internal
+    , unix
+
+  default-language: Haskell2010
+
+-- test-suite henforcer-test
+--   type: exitcode-stdio-1.0
+--   main-is: Main.hs
+--   other-modules:
+--       Paths_henforcer
+--   hs-source-dirs:
+--       test
+--   ghc-options: -Wall -Werror -threaded -rtsopts -with-rtsopts=-N
+--   build-depends:
+--       HUnit
+--     , base >=4.7 && <5
+--     , bytestring
+--     , containers ==0.6.*
+--     , dhall >=1.28 && <2
+--     , directory ==1.3.*
+--     , file-embed ==0.0.*
+--     , filepath ==1.4.*
+--     , haskell-src-exts >=1.20 && <1.24
+--     , henforcer
+--     , optparse-applicative >=0.14 && <0.17
+--     , text
+--     , unix ==2.7.*
+--   default-language: Haskell2010

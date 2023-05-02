@@ -26,7 +26,7 @@ let
 let
     -- Indicates whether an allowed qualification is quailfied or unqualified
     Qualification =
-      < QualifiedPre | Unqualified >
+      < QualifiedPre | Unqualified | QualifiedPost >
 
 let
     -- Indicates whether an allowed qualification has an alias, and if so what
@@ -35,12 +35,20 @@ let
       < WithAlias : ModuleName | WithoutAlias >
 
 let
+    Safe =
+      < WithoutSafe | WithSafe >
+
+let
+    Package =
+      < WithoutPackage | WithPackage : Text >
+
+let
     -- Describes an allowed qualification scheme for a module when it is imported.
     -- When allowed qualifications are declared for a module, any import of that
     -- module must match one of the `AllowedQualifications` given for it in the
     -- configuration.
     AllowedQualification =
-      { qualification : Qualification, alias : Alias }
+      { qualification : Qualification, alias : Alias, safe : Safe, package : Package }
 
 let
     -- Build an `AllowedQualification` for unqualified imports without an alias
@@ -59,14 +67,14 @@ let
 let
     -- Build an `AllowedQualification` for qualified imports without an alias
     qualified =
-      { qualification = Qualification.Qualified, alias = Alias.WithoutAlias }
+      { qualification = Qualification.QualifiedPre, alias = Alias.WithoutAlias }
 
 let
     -- Build an `AllowedQualification` for qualified imports that must have the
     -- provided alias
     qualifiedAs =
       \(aliasName : Text) ->
-        { qualification = Qualification.Qualified
+        { qualification = Qualification.QualifiedPre
         , alias = Alias.WithAlias aliasName
         }
 
@@ -74,7 +82,7 @@ let AllowedQualificationMap =
       List { mapKey : ModuleName, mapValue : List AllowedQualification }
 
 let Config =
-      { -- Paths that modulint should search for Haskell files when run
+      { -- Paths that henforcer should search for Haskell files when run
         -- You most likely want to override this.
         sourcePaths : List Text
       , treeDependencies : List Dependency
