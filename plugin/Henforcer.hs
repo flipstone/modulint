@@ -4,7 +4,6 @@ Description :
 Copyright   : (c) Flipstone Technology Partners, 2023
 License     : BSD-3-clause
 Maintainer  : development@flipstone.com
-Stability   : Stable
 -}
 module Henforcer
   ( plugin
@@ -48,7 +47,7 @@ parsedResultAction commandLineOpts modSummary parsedResult = do
       name = CompatGHC.moduleName $ CompatGHC.ms_mod modSummary
 
   Monad.when (HaddockCheck.documentationRuleAppliesToModule docE name) $ do
-    eitherErrOrIfaces <- CompatGHC.liftIO $ Haddock.silentlyCreateInterfaces modSummary
+    eitherErrOrIfaces <- CompatGHC.liftIO $ Haddock.tryCreateInterfaces modSummary
     case eitherErrOrIfaces of
       Left err -> CompatGHC.printMsgs . CompatGHC.mkErrorMsgsWithGeneratedSrcSpan $ [err]
       Right ifaces ->
@@ -59,8 +58,8 @@ parsedResultAction commandLineOpts modSummary parsedResult = do
     . ImportCheck.errorMessagesFromList
     . ImportCheck.checkModule ic
     . CompatGHC.unLoc
-    . CompatGHC.hpm_module $
-    CompatGHC.parsedResultModule parsedResult
+    . CompatGHC.hpm_module
+    $ CompatGHC.parsedResultModule parsedResult
   pure parsedResult
 
 loadConfigIfNeeded :: [CompatGHC.CommandLineOption] -> IO Config.Config

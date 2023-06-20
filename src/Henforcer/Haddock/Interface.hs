@@ -1,5 +1,12 @@
+{- |
+Module      : Henforcer.Haddock.Interface
+Description : Creating Haddock Interfaces in a more ergonomic way, with some enumerated errors.
+Copyright   : (c) Flipstone Technology Partners, 2023
+License     : BSD-3-clause
+Maintainer  : development@flipstone.com
+-}
 module Henforcer.Haddock.Interface
-  ( silentlyCreateInterfaces
+  ( tryCreateInterfaces
   , HaddockError
   ) where
 
@@ -13,11 +20,10 @@ import qualified CompatGHC
 {- | Conditionally creates a list of 'Haddock.Interface's, silencing the normal Haddock output, so
  we do not generate a ton of noise.
 -}
-silentlyCreateInterfaces :: CompatGHC.ModSummary -> IO (Either HaddockError [Haddock.Interface])
-silentlyCreateInterfaces moduleSummary =
+tryCreateInterfaces :: CompatGHC.ModSummary -> IO (Either HaddockError [Haddock.Interface])
+tryCreateInterfaces moduleSummary =
   case CompatGHC.ml_hs_file $ CompatGHC.ms_location moduleSummary of
     Nothing ->
-      -- TODO: We definitely need a better error message here.
       pure . Left . UnableToGetFileFromSummary . CompatGHC.moduleName $ CompatGHC.ms_mod moduleSummary
     Just f -> do
       ifaces <- silentlyCreate [f]
@@ -41,6 +47,22 @@ data HaddockError
   | NoHaddockInterfacesCreatedFor CompatGHC.ModuleName
   | NoInterfacesCreatedAtAll
 
+-- | Make sure that we can show the haddock errors in with other ghc output.
+instance CompatGHC.Outputable HaddockError where
+  ppr haddockError =
+    CompatGHC.sep
+      [ toSdoc haddockError
+      , CompatGHC.blankLine
+      ]
+
+{- | The only part of the 'CompatGHC.Diagnostic' class that we really care about is the
+ 'diagnosticMessage', used for printing.
+-}
+instance CompatGHC.Diagnostic HaddockError where
+  diagnosticMessage = CompatGHC.mkSimpleDecorated . CompatGHC.ppr
+  diagnosticReason = const CompatGHC.ErrorWithoutFlag
+  diagnosticHints = const []
+
 toSdoc :: HaddockError -> CompatGHC.SDoc
 toSdoc (UnableToGetFileFromSummary n) =
   CompatGHC.hsep
@@ -58,18 +80,3 @@ toSdoc NoInterfacesCreatedAtAll =
   CompatGHC.hsep
     [ CompatGHC.text "No interfaces created at all"
     ]
-
-instance CompatGHC.Outputable HaddockError where
-  ppr haddockError =
-    CompatGHC.sep
-      [ toSdoc haddockError
-      , CompatGHC.blankLine
-      ]
-
-{- | The only part of the 'CompatGHC.Diagnostic' class that we really care about is the
- 'diagnosticMessage', used for printing.
--}
-instance CompatGHC.Diagnostic HaddockError where
-  diagnosticMessage = CompatGHC.mkSimpleDecorated . CompatGHC.ppr
-  diagnosticReason = const CompatGHC.ErrorWithoutFlag
-  diagnosticHints = const []

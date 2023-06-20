@@ -69,8 +69,10 @@ module CompatGHC
   , printMsgs
   , mkErrorMsgEnvelope
   , mkErrorMsgsWithGeneratedSrcSpan
+  , moduleNameDecoder
   ) where
 
+import qualified Dhall
 import GHC
   ( GhcPs
   , GhcRn
@@ -228,3 +230,8 @@ mkMessagesFromList = GHC.mkMessages . GHC.listToBag
 mkErrorMsgsWithGeneratedSrcSpan :: [e] -> Messages e
 mkErrorMsgsWithGeneratedSrcSpan =
   mkMessagesFromList . fmap (mkErrorMsgEnvelope generatedSrcSpan)
+
+-- | Helper function to abstract decoding ModuleName to a central place
+moduleNameDecoder :: Dhall.Decoder ModuleName
+moduleNameDecoder =
+  fmap mkModuleName Dhall.string

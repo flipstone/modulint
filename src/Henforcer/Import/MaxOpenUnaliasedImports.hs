@@ -37,7 +37,7 @@ allowedOpenUnaliasedImportsDecoder =
         PerModuleOpenUnaliasedImports
         ( Dhall.constructor
             (T.pack "PerModuleOpenUnaliasedImports")
-            (Dhall.map moduleName maxOpenUnaliasedImportNatDecoder)
+            (Dhall.map CompatGHC.moduleNameDecoder maxOpenUnaliasedImportNatDecoder)
         )
 
 -- | A wrapper around 'Nat.Natural' for clarity
@@ -50,8 +50,3 @@ showMaxOpenUnaliasedImportsNat (MaxOpenUnaliasedImportsNat n) = show n
 maxOpenUnaliasedImportNatDecoder :: Dhall.Decoder MaxOpenUnaliasedImportsNat
 maxOpenUnaliasedImportNatDecoder =
   fmap MaxOpenUnaliasedImportsNat Dhall.natural
-
--- TODO combine this with other definition
-moduleName :: Dhall.Decoder CompatGHC.ModuleName
-moduleName =
-  fmap CompatGHC.mkModuleName Dhall.string

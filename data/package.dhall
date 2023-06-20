@@ -14,48 +14,48 @@ let
           )
 
 let
-    -- A ModuleName is a dot-delimited module name corresponding to a
-    -- Haskell module. E.G. "Control.Monad" ModuleNames cannot be the
-    -- empty string.
+    --| A ModuleName is a dot-delimited module name corresponding to a
+    --  Haskell module. E.G. "Control.Monad" ModuleNames cannot be the
+    --  empty string.
     ModuleName =
       Text
 
 let
-    -- A TreeName is a dot-delimited module-like name corresponding to a
-    -- location in the directory tree. E.G. "Control.Monad" corresponds to
-    -- all modules beginning with "Control.Monad.", as well as "Control.Monad"
-    -- itself. Textually it appears the same as a ModuleName, but is used to
-    -- denote the tree rather than an individual module. TreeNames cannot abe
-    -- the empty string.
+    --| A TreeName is a dot-delimited module-like name corresponding to a
+    --  location in the directory tree. E.G. "Control.Monad" corresponds to
+    --  all modules beginning with "Control.Monad.", as well as "Control.Monad"
+    --  itself. Textually it appears the same as a ModuleName, but is used to
+    --  denote the tree rather than an individual module. TreeNames cannot abe
+    --  the empty string.
     TreeName =
       Text
 
 let
-    -- A Dependency declares that one subtree of the project depends on
-    -- other subtrees. This forbids any modules in the subtrees listed in
-    -- `dependencies` from importing any module contained within the subtree
-    -- indicated by `moduleTree`
+    --| A Dependency declares that one subtree of the project depends on
+    --  other subtrees. This forbids any modules in the subtrees listed in
+    --  `dependencies` from importing any module contained within the subtree
+    --  indicated by `moduleTree`
     Dependency =
       { moduleTree : TreeName, dependencies : List TreeName }
 
 let
-    -- Indicates whether an allowed qualification is quailfied pre, qualified post, or unqualified
+    --| Indicates whether an allowed qualification is quailfied pre, qualified post, or unqualified
     Qualification =
       < QualifiedPre | QualifiedPost | Unqualified >
 
 let
-    -- Indicates whether an allowed qualification has an alias, and if so what
-    -- the alias must be.
+    --| Indicates whether an allowed qualification has an alias, and if so what
+    --  the alias must be.
     Alias =
       < WithAlias : ModuleName | WithoutAlias >
 
 let
-    -- Indicates whethter an allowed import is only imported if it can be done so safely.
+    --| Indicates whethter an allowed import is only imported if it can be done so safely.
     Safe =
       < WithSafe | WithoutSafe >
 
 let
-    -- Indicates whether an allowed import is a package import and if so what the package must be.
+    --| Indicates whether an allowed import is a package import and if so what the package must be.
     Package =
       < WithPackage : Text | WithoutPackage >
 
@@ -63,8 +63,8 @@ let BothDocumentationRule =
       { maximumUndocumented : Natural, minimumDocumented : Natural }
 
 let
-    -- Indicates either the most haddockable items that can be undocumented or the smallest number
-    -- of said items that must be documented.
+    --| Indicates either the most haddockable items that can be undocumented or the smallest number
+    --  of said items that must be documented.
     DocumentationRule =
       < MaximumUndocumented : Natural
       | MinimumDocumented : Natural
@@ -72,10 +72,10 @@ let
       >
 
 let
-    -- Describes an allowed qualification scheme for a module when it is imported.
-    -- When allowed qualifications are declared for a module, any import of that
-    -- module must match one of the `AllowedQualifications` given for it in the
-    -- configuration.
+    --| Describes an allowed qualification scheme for a module when it is imported.
+    --  When allowed qualifications are declared for a module, any import of that
+    --  module must match one of the `AllowedQualifications` given for it in the
+    --  configuration.
     AllowedQualification =
       { qualification : Qualification
       , alias : Alias
@@ -84,14 +84,14 @@ let
       }
 
 let
-    -- A key-value list of 'ModuleName' and numbers that represent the number of imports that are
-    -- allowed to be imported completely open with no alias.
+    --| A key-value list of 'ModuleName' and numbers that represent the number of imports that are
+    --  allowed to be imported completely open with no alias.
     OpenUnaliasedImportMap =
       List { mapKey : ModuleName, mapValue : Natural }
 
 let
-    -- Allows for either a global value of open and unaliased imports or determining those on a per
-    -- module basis.
+    --| Allows for either a global value of open and unaliased imports or determining those on a per
+    --  module basis.
     AllowedOpenUnaliasedImports =
       < GlobalAllowedOpenUnaliasedImports : Natural
       | PerModuleOpenUnaliasedImports : OpenUnaliasedImportMap
@@ -102,7 +102,7 @@ let globalMaxAllowedOpenUnaliasedImports =
         AllowedOpenUnaliasedImports.GlobalAllowedOpenUnaliasedImports num
 
 let
-    -- Build an `AllowedQualification` for unqualified imports without an alias
+    --| Build an `AllowedQualification` for unqualified imports without an alias
     unqualified =
       { qualification = Qualification.Unqualified
       , alias = Alias.WithoutAlias
@@ -111,8 +111,8 @@ let
       }
 
 let
-    -- Build an `AllowedQualification` for unqualified imports that must have the
-    -- provided alias
+    --| Build an `AllowedQualification` for unqualified imports that must have the
+    --  provided alias
     unqualifiedAs =
       \(aliasName : Text) ->
         { qualification = Qualification.Unqualified
@@ -122,7 +122,7 @@ let
         }
 
 let
-    -- Build an `AllowedQualification` for qualified imports without an alias
+    --| Build an `AllowedQualification` for qualified imports without an alias
     qualified =
       { qualification = Qualification.QualifiedPre
       , alias = Alias.WithoutAlias
@@ -131,8 +131,8 @@ let
       }
 
 let
-    -- Build an `AllowedQualification` for qualified imports that must have the
-    -- provided alias
+    --| Build an `AllowedQualification` for qualified imports that must have the
+    --  provided alias
     qualifiedAs =
       \(aliasName : Text) ->
         { qualification = Qualification.QualifiedPre
@@ -142,7 +142,7 @@ let
         }
 
 let
-    -- Build an `AllowedQualification` for qualified post imports without an alias
+    --| Build an `AllowedQualification` for qualified post imports without an alias
     qualifiedPost =
       { qualification = Qualification.QualifiedPost
       , alias = Alias.WithoutAlias
@@ -151,8 +151,8 @@ let
       }
 
 let
-    -- Build an `AllowedQualification` for qualified post imports that must have the
-    -- provided alias
+    --| Build an `AllowedQualification` for qualified post imports that must have the
+    --  provided alias
     qualifiedPostAs =
       \(aliasName : Text) ->
         { qualification = Qualification.QualifiedPost
@@ -162,8 +162,8 @@ let
         }
 
 let
-    -- Build a list `AllowedQualification` for qualified pre or qualified post imports without
-    -- an alias
+    --| Build a list `AllowedQualification` for qualified pre or qualified post imports without
+    --  an alias.
     qualifiedEither =
       [ { qualification = Qualification.QualifiedPre
         , alias = Alias.WithoutAlias
@@ -178,8 +178,8 @@ let
       ]
 
 let
-    -- Build a list of `AllowedQualification` for qualified pre or qualified post imports that
-    -- must have the provided alias
+    --| Build a list of `AllowedQualification` for qualified pre or qualified post imports that
+    --  must have the provided alias
     qualifiedEitherAs =
       \(aliasName : Text) ->
         [ { qualification = Qualification.QualifiedPre
@@ -195,25 +195,25 @@ let
         ]
 
 let
-    -- Mark an import as requiring safe
+    --| Mark an import as requiring safe
     setWithSafe =
       \(import : AllowedQualification) -> import // { safe = Safe.WithSafe }
 
 let
-    -- Modify a list of `AllowedQualification` to only allow safe imports
+    --| Modify a list of `AllowedQualification` to only allow safe imports
     onlySafe =
       \(imports : List AllowedQualification) ->
         map AllowedQualification AllowedQualification setWithSafe imports
 
 let
-    -- Mark an import as being a package import and what the package is.
+    --| Mark an import as being a package import and what the package is.
     setWithPackage =
       \(packageName : Text) ->
       \(import : AllowedQualification) ->
         import // { package = Package.WithPackage packageName }
 
 let
-    -- Modify a list of `AllowedQualification` to only allow package imports
+    --| Modify a list of `AllowedQualification` to only allow package imports
     onlyPackage =
       \(packageName : Text) ->
       \(imports : List AllowedQualification) ->
@@ -224,12 +224,12 @@ let
           imports
 
 let
-    -- Set minimum documented rule, to make writing configs more ergonomic
+    --| Set minimum documented rule, to make writing configs more ergonomic
     minimumDocumentedRule =
       \(num : Natural) -> DocumentationRule.MinimumDocumented num
 
 let
-    -- Set maximum undocumented rule, to make writing configs more ergonomic
+    --| Set maximum undocumented rule, to make writing configs more ergonomic
     maximumUndocumentedRule =
       \(num : Natural) -> DocumentationRule.MaximumUndocumented num
 

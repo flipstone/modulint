@@ -59,7 +59,7 @@ configDecoder =
       <$> Dhall.field (T.pack "sourcePaths") (Dhall.list Dhall.string)
       <*> Dhall.field (T.pack "treeDependencies") (Dhall.list dependencyDeclarationDecoder)
       <*> Dhall.field (T.pack "encapsulatedTrees") (Dhall.list treeName)
-      <*> Dhall.field (T.pack "allowedQualifications") (Dhall.map moduleName (Dhall.list qualificationScheme))
+      <*> Dhall.field (T.pack "allowedQualifications") (Dhall.map CompatGHC.moduleNameDecoder (Dhall.list qualificationScheme))
       <*> Dhall.field (T.pack "documentationRules") H.documentationRulesDecoder
       <*> Dhall.field (T.pack "allowedOpenUnaliasedImports") Import.allowedOpenUnaliasedImportsDecoder
 
@@ -90,7 +90,7 @@ alias :: Dhall.Decoder Import.Alias
 alias =
   Dhall.union $
     (const Import.WithoutAlias <$> Dhall.constructor (T.pack "WithoutAlias") Dhall.unit)
-      <> (Import.WithAlias <$> Dhall.constructor (T.pack "WithAlias") moduleName)
+      <> (Import.WithAlias <$> Dhall.constructor (T.pack "WithAlias") CompatGHC.moduleNameDecoder)
 
 safe :: Dhall.Decoder Import.Safe
 safe =
@@ -103,11 +103,6 @@ package =
   Dhall.union $
     (const Import.WithoutPackage <$> Dhall.constructor (T.pack "WithoutPackage") Dhall.unit)
       <> (Import.WithPackage <$> Dhall.constructor (T.pack "WithPackage") Dhall.string)
-
--- TODO Combine this with other definition
-moduleName :: Dhall.Decoder CompatGHC.ModuleName
-moduleName =
-  fmap CompatGHC.mkModuleName Dhall.string
 
 treeName :: Dhall.Decoder TreeName.TreeName
 treeName =

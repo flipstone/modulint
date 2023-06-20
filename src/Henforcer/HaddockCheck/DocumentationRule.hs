@@ -1,5 +1,10 @@
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
-
+{- |
+Module      : Henforcer.HaddockCheck.DocumentationRule
+Description :
+Copyright   : (c) Flipstone Technology Partners, 2023
+License     : BSD-3-clause
+Maintainer  : development@flipstone.com
+-}
 module Henforcer.HaddockCheck.DocumentationRule
   ( DocumentationRules (..)
   , documentationRulesDecoder
@@ -24,6 +29,8 @@ import Henforcer.HaddockCheck.ModuleHeaderRule
   , moduleHeaderRuleDecoder
   )
 
+{- | Union between the various sorts of violations of documentation rules.
+-}
 data DocumentationViolation
   = AmountViolation DocumentationAmountViolation
   | HeaderViolation ModuleHeaderViolation
@@ -42,6 +49,7 @@ instance CompatGHC.Diagnostic DocumentationViolation where
   diagnosticReason = const CompatGHC.ErrorWithoutFlag
   diagnosticHints = const []
 
+-- | Collection of rules pertaining to documentation.
 data DocumentationRules = DocumentationRules
   { globalDocumentationAmount :: Maybe DocumentationAmountRule
   , perModuleDocumentationAmounts :: M.Map CompatGHC.ModuleName DocumentationAmountRule
@@ -53,18 +61,13 @@ documentationRulesDecoder =
   Dhall.record $
     DocumentationRules
       <$> Dhall.field (T.pack "globalDocumentationAmount") (Dhall.maybe documentationRuleDecoder)
-      <*> Dhall.field (T.pack "perModuleDocumentationAmounts") (Dhall.map moduleName documentationRuleDecoder)
-      <*> Dhall.field (T.pack "moduleHeaderRules") (Dhall.map moduleName moduleHeaderRuleDecoder)
+      <*> Dhall.field (T.pack "perModuleDocumentationAmounts") (Dhall.map CompatGHC.moduleNameDecoder documentationRuleDecoder)
+      <*> Dhall.field (T.pack "moduleHeaderRules") (Dhall.map CompatGHC.moduleNameDecoder moduleHeaderRuleDecoder)
 
+-- | Determines if the documentation rules apply to a given module
 documentationRuleAppliesToModule :: DocumentationRules -> CompatGHC.ModuleName -> Bool
 documentationRuleAppliesToModule rules modName =
-  if Maybe.isJust (globalDocumentationAmount rules)
-    then True
-    else
-      M.member modName (perModuleDocumentationAmounts rules)
-        || M.member modName (moduleHeaderRules rules)
-
--- TODO combine this with other definition
-moduleName :: Dhall.Decoder CompatGHC.ModuleName
-moduleName =
-  fmap CompatGHC.mkModuleName Dhall.string
+  Maybe.isJust (globalDocumentationAmount rules)
+    || ( M.member modName (perModuleDocumentationAmounts rules)
+          || M.member modName (moduleHeaderRules rules)
+       )
