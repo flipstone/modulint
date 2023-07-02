@@ -34,12 +34,12 @@ tryCreateInterfaces moduleSummary =
 
 {- | silentlyCreate will create the Haddock interfaces for a given set of files. This uses 'try' to
  handle exceptions, so that creating interfaces does not cause a ghc panic because we do not
- attempt to load any dependencies. Output is to stdout and stderr for the operation is silenced as
+ attempt to load any dependencies. Output is to stdout for the operation is silenced as
  creating the interface would print for every import of a dependency otherwise.
 -}
 silentlyCreate :: [String] -> IO (Either UnliftIO.SomeException [Haddock.Interface])
 silentlyCreate =
-  Silently.hSilence [SysIO.stdout, SysIO.stderr] . UnliftIO.try . Haddock.createInterfaces []
+  Silently.silence . UnliftIO.try . Haddock.createInterfaces []
 
 -- | The various errors we can encounter processing haddock information.
 data HaddockError
