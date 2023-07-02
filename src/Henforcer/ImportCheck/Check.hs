@@ -41,7 +41,7 @@ data ImportChecker = ImportChecker
   , allowedOpenUnaliasedImports :: Import.AllowedOpenUnaliasedImports
   }
 
-checkModule :: ImportChecker -> CompatGHC.HsModule -> [CheckFailure]
+checkModule :: ImportChecker -> CompatGHC.TcGblEnv -> [CheckFailure]
 checkModule = checkImports
 
 newImportChecker :: Config.Config -> ImportChecker
@@ -63,15 +63,15 @@ newImportChecker config =
 
 checkImports ::
   ImportChecker
-  -> CompatGHC.HsModule
+  -> CompatGHC.TcGblEnv
   -> [CheckFailure]
-checkImports importChecker hsModule =
-  let imports = Import.getImports hsModule
-      mbModuleName = fmap CompatGHC.unLoc $ CompatGHC.hsmodName hsModule
+checkImports importChecker tcGblEnv =
+  let imports = Import.getImports tcGblEnv
+      name = CompatGHC.moduleName $ CompatGHC.tcg_mod tcGblEnv
    in ST.runST $ do
         failures <- STRef.newSTRef []
         Fold.traverse_ (checkImport failures importChecker) imports
-        checkOpenImport failures mbModuleName (allowedOpenUnaliasedImports importChecker) imports
+        checkOpenImport failures name (allowedOpenUnaliasedImports importChecker) imports
         STRef.readSTRef failures
 
 checkImport ::
@@ -146,21 +146,19 @@ checkImportQualification failures imp alloweds =
 
 checkOpenImport ::
   STRef.STRef s [CheckFailure]
-  -> Maybe CompatGHC.ModuleName
+  -> CompatGHC.ModuleName
   -> Import.AllowedOpenUnaliasedImports
   -> [Import.Import]
   -> ST.ST s ()
-checkOpenImport failures mbModName openAllowed imports =
+checkOpenImport failures modName openAllowed imports =
   let openImports = filter Import.importIsOpenWithNoHidingOrAlias imports
-   in case (openImports, openAllowed, mbModName) of
-        ([], _, _) ->
+   in case (openImports, openAllowed) of
+        ([], _) ->
           pure ()
-        (x : xs, Import.GlobalAllowedOpenUnaliasedImports nat, _) ->
+        (x : xs, Import.GlobalAllowedOpenUnaliasedImports nat) ->
           checkNonEmptyOpenImports failures (x NEL.:| xs) nat
-        (x : xs, Import.PerModuleOpenUnaliasedImports allowedMap, Just modName) ->
+        (x : xs, Import.PerModuleOpenUnaliasedImports allowedMap) ->
           Fold.traverse_ (checkNonEmptyOpenImports failures (x NEL.:| xs)) $ M.lookup modName allowedMap
-        (_, _, _) ->
-          pure () -- TODO: Support unamed modules? But if it isn't named, how can we look up a value?
 
 checkNonEmptyOpenImports ::
   STRef.STRef s [CheckFailure]

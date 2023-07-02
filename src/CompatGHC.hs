@@ -7,39 +7,32 @@
 module CompatGHC
   ( -- GHC
     GhcRn
-  , GhcPs
-  , HsModule (..)
-  , HsParsedModule (..)
   , ImportDecl
   , ImportDeclQualifiedStyle (..)
   , LImportDecl
-  , ModLocation (..)
   , ModSummary (..)
   , ModuleName
-  , RawPkgQual (..)
   , SrcSpan
   , getLoc
   , ideclAs
   , ideclName
-  , ideclPkgQual
   , ideclQualified
   , ideclSafe
   , ideclHiding
   , locA
-  , mkModuleName
+  , ml_hs_file
   , moduleName
   , moduleNameString
   , unLoc
   -- GHC.Plugins
   , CommandLineOption
   , DiagnosticReason (..)
-  , Hsc
   , Messages
   , Outputable (ppr)
-  , ParsedResult
-  , parsedResultModule
   , Plugin (..)
   , SDoc
+  , TcGblEnv(tcg_rn_imports, tcg_mod)
+  , TcM
   , UnitId (..)
   , blankLine
   , cat
@@ -65,8 +58,8 @@ module CompatGHC
   -- GHC.Types.SourceText
   , sl_fs
   -- internal defined helpers
+  , addMessages
   , mkMessagesFromList
-  , printMsgs
   , mkErrorMsgEnvelope
   , mkErrorMsgsWithGeneratedSrcSpan
   , moduleNameDecoder
@@ -74,14 +67,10 @@ module CompatGHC
 
 import qualified Dhall
 import GHC
-  ( GhcPs
-  , GhcRn
-  , HsModule (..)
-  , HsParsedModule (..)
+  ( GhcRn
   , ImportDecl
   , ImportDeclQualifiedStyle (..)
   , LImportDecl
-  , ModLocation (..)
   , ModSummary (..)
   , ModuleName
   , SrcSpan
@@ -93,15 +82,14 @@ import GHC
   , ideclSafe
   , locA
   , mkModuleName
+  , ml_hs_file
   , moduleName
   , moduleNameString
   , unLoc
   )
-import qualified GHC
 import qualified GHC.Data.Bag as GHC
 import GHC.Plugins
   ( CommandLineOption
-  , Hsc
   , Outputable (ppr)
   , Plugin (..)
   , SDoc
@@ -125,19 +113,19 @@ import GHC.Plugins
   , vcat
   )
 import qualified GHC.Plugins as GHC
+import GHC.Tc.Utils.Monad (TcGblEnv(tcg_rn_imports, tcg_mod), TcM)
+import qualified GHC.Tc.Utils.Monad as GHC
 import qualified GHC.Types.Error as GHC
 import GHC.Types.SourceText (StringLiteral (sl_fs))
 
 #if __GLASGOW_HASKELL__ == 902
-import qualified GHC.Driver.Errors as GHC902
 import GHC.Types.Error(Messages, MsgEnvelope(..))
 
 #else
 
-import GHC (ideclPkgQual)
-import qualified GHC.Driver.Config.Diagnostic as GHC904
-import qualified GHC.Driver.Errors as GHC904
-import GHC.Plugins (DiagnosticReason(..), Messages, ParsedResult(..), RawPkgQual(..))
+import Data.Typeable (Typeable)
+import GHC.Plugins (DiagnosticReason(..), Messages)
+import qualified GHC.Tc.Errors.Types as GHC904
 import GHC.Types.Error (MsgEnvelope(..), Diagnostic(..), mkSimpleDecorated)
 
 #endif
@@ -160,44 +148,20 @@ class Diagnostic a where
 instance {-# INCOHERENT #-} (Diagnostic a) => GHC.RenderableDiagnostic a where
   renderDiagnostic = diagnosticMessage
 
-data RawPkgQual
-  = NoRawPkgQual
-  | RawPkgQual StringLiteral
-
--- | In GHC 9.4 a new result type was added, but 9.2 used the 'HsParsedModule'
-type ParsedResult = HsParsedModule
-
-parsedResultModule :: ParsedResult -> ParsedResult
-parsedResultModule = id
-
--- | Internal helper for GHC 9.2 message printing
-printMessages :: Diagnostic a => GHC.Logger -> GHC.DynFlags -> Messages a -> IO ()
-printMessages l f msgs =
-  let (warns, errs) = GHC.partitionMessages msgs
-      msgsToPrint = GHC.unionBags warns errs
-  in
-    GHC902.printBagOfErrors l f msgsToPrint
-
 -- | 'mkSimpleDecorated' compat as needed for 9.2.x
 mkSimpleDecorated :: SDoc -> GHC.DecoratedSDoc
 mkSimpleDecorated = GHC.mkDecorated . pure
-
--- | Wrap the 9.2.x 'ideclPkgQual' so to be compatible with 9.4.x
-ideclPkgQual :: ImportDecl pass -> RawPkgQual
-ideclPkgQual =
-  maybe NoRawPkgQual (RawPkgQual) . GHC.ideclPkgQual
 
 -- | Helper for creating a 'MsgEnvelope' as needed for 9.2.x
 mkErrorMsgEnvelope :: SrcSpan -> e -> MsgEnvelope e
 mkErrorMsgEnvelope msgSpan =
   GHC.mkErr msgSpan GHC.neverQualify
 
--- | Helper for printing messages as needed for GHC 9.2.x
-printMsgs :: Diagnostic a => Messages a -> Hsc ()
-printMsgs msgs = do
-  ghcLogger <- GHC.getLogger
-  diagOpts <- GHC.getDynFlags
-  liftIO $ printMessages ghcLogger diagOpts msgs
+-- | Helper to add messages to the type checking monad so our plugin will print our output and fail
+-- a build.
+addMessages :: (Diagnostic a) => Messages a -> TcM ()
+addMessages =
+  GHC.addMessages . fmap diagnosticMessage
 
 #endif
 
@@ -213,12 +177,11 @@ mkErrorMsgEnvelope msgSpan a =
     , errMsgDiagnostic = a
     }
 
--- | Helper for printing messages as needed for GHC 9.4.x
-printMsgs :: Diagnostic a => Messages a -> Hsc ()
-printMsgs msgs = do
-  ghcLogger <- GHC.getLogger
-  diagOpts <- fmap GHC904.initDiagOpts GHC.getDynFlags
-  liftIO $ GHC904.printMessages ghcLogger diagOpts msgs
+-- | Helper to add messages to the type checking monad so our plugin will print our output and fail
+-- a build.
+addMessages :: (Typeable a, Diagnostic a) => Messages a -> TcM ()
+addMessages =
+  GHC.addMessages . fmap GHC904.TcRnUnknownMessage
 
 #endif
 

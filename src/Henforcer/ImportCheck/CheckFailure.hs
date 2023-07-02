@@ -177,12 +177,6 @@ rebuildImportStatementFromScheme modName schema =
             CompatGHC.QualifiedPre -> CompatGHC.text "qualified"
             CompatGHC.QualifiedPost -> CompatGHC.empty
             CompatGHC.NotQualified -> CompatGHC.empty
-        , case Import.package schema of
-            Import.WithoutPackage -> CompatGHC.empty -- Purposely do not mention package imports when not forced, as this
-            -- makes the output needlessly complex and we don't need to
-            -- mention something requiring an extension if users didn't ask
-            -- for it explicitly.
-            Import.WithPackage pkg -> CompatGHC.doubleQuotes $ CompatGHC.text pkg
         , CompatGHC.text (CompatGHC.moduleNameString modName)
         , case Import.qualification schema of
             CompatGHC.QualifiedPre -> CompatGHC.empty

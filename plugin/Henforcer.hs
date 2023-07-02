@@ -31,36 +31,35 @@ plugin :: CompatGHC.Plugin
 plugin =
   CompatGHC.defaultPlugin
     { CompatGHC.pluginRecompile = CompatGHC.purePlugin
-    , CompatGHC.parsedResultAction = parsedResultAction
+    , CompatGHC.typeCheckResultAction = typeCheckResultAction
     }
 
-parsedResultAction ::
+typeCheckResultAction ::
   [CompatGHC.CommandLineOption]
   -> CompatGHC.ModSummary
-  -> CompatGHC.ParsedResult
-  -> CompatGHC.Hsc CompatGHC.ParsedResult
-parsedResultAction commandLineOpts modSummary parsedResult = do
+  -> CompatGHC.TcGblEnv
+  -> CompatGHC.TcM CompatGHC.TcGblEnv
+typeCheckResultAction commandLineOpts modSummary tcGblEnv = do
   config <- CompatGHC.liftIO $ loadConfigIfNeeded commandLineOpts
 
   let ic = ImportCheck.newImportChecker config
       docE = Config.allowedDocumentation config
       name = CompatGHC.moduleName $ CompatGHC.ms_mod modSummary
 
+
   Monad.when (HaddockCheck.documentationRuleAppliesToModule docE name) $ do
     eitherErrOrIfaces <- CompatGHC.liftIO $ Haddock.tryCreateInterfaces modSummary
     case eitherErrOrIfaces of
-      Left err -> CompatGHC.printMsgs . CompatGHC.mkErrorMsgsWithGeneratedSrcSpan $ [err]
+      Left err -> CompatGHC.addMessages . CompatGHC.mkErrorMsgsWithGeneratedSrcSpan $ [err]
       Right ifaces ->
-        CompatGHC.printMsgs . CompatGHC.mkErrorMsgsWithGeneratedSrcSpan $
+        CompatGHC.addMessages . CompatGHC.mkErrorMsgsWithGeneratedSrcSpan $
           HaddockCheck.checkOnlyGivenModule docE name ifaces
 
-  CompatGHC.printMsgs
-    . ImportCheck.errorMessagesFromList
-    . ImportCheck.checkModule ic
-    . CompatGHC.unLoc
-    . CompatGHC.hpm_module
-    $ CompatGHC.parsedResultModule parsedResult
-  pure parsedResult
+  CompatGHC.addMessages
+        . ImportCheck.errorMessagesFromList
+        $ ImportCheck.checkModule ic tcGblEnv
+
+  pure tcGblEnv
 
 loadConfigIfNeeded :: [CompatGHC.CommandLineOption] -> IO Config.Config
 loadConfigIfNeeded commandLineOpts = do

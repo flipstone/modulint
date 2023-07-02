@@ -10,6 +10,6 @@ data Alias
   | WithoutAlias
   deriving (Eq)
 
-determineAlias :: CompatGHC.ImportDecl CompatGHC.GhcPs -> Alias
+determineAlias :: CompatGHC.ImportDecl CompatGHC.GhcRn -> Alias
 determineAlias =
   maybe WithoutAlias (WithAlias . CompatGHC.unLoc) . CompatGHC.ideclAs

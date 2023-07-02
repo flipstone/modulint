@@ -54,11 +54,6 @@ let
     Safe =
       < WithSafe | WithoutSafe >
 
-let
-    -- Indicates whether an allowed import is a package import and if so what the package must be.
-    Package =
-      < WithPackage : Text | WithoutPackage >
-
 let BothDocumentationRule =
       { maximumUndocumented : Natural, minimumDocumented : Natural }
 
@@ -77,11 +72,7 @@ let
     -- module must match one of the `AllowedQualifications` given for it in the
     -- configuration.
     AllowedQualification =
-      { qualification : Qualification
-      , alias : Alias
-      , safe : Safe
-      , package : Package
-      }
+      { qualification : Qualification, alias : Alias, safe : Safe }
 
 let
     -- A key-value list of 'ModuleName' and numbers that represent the number of imports that are
@@ -107,7 +98,6 @@ let
       { qualification = Qualification.Unqualified
       , alias = Alias.WithoutAlias
       , safe = Safe.WithoutSafe
-      , package = Package.WithoutPackage
       }
 
 let
@@ -118,7 +108,6 @@ let
         { qualification = Qualification.Unqualified
         , alias = Alias.WithAlias aliasName
         , safe = Safe.WithoutSafe
-        , package = Package.WithoutPackage
         }
 
 let
@@ -127,7 +116,6 @@ let
       { qualification = Qualification.QualifiedPre
       , alias = Alias.WithoutAlias
       , safe = Safe.WithoutSafe
-      , package = Package.WithoutPackage
       }
 
 let
@@ -138,7 +126,6 @@ let
         { qualification = Qualification.QualifiedPre
         , alias = Alias.WithAlias aliasName
         , safe = Safe.WithoutSafe
-        , package = Package.WithoutPackage
         }
 
 let
@@ -147,7 +134,6 @@ let
       { qualification = Qualification.QualifiedPost
       , alias = Alias.WithoutAlias
       , safe = Safe.WithoutSafe
-      , package = Package.WithoutPackage
       }
 
 let
@@ -158,7 +144,6 @@ let
         { qualification = Qualification.QualifiedPost
         , alias = Alias.WithAlias aliasName
         , safe = Safe.WithoutSafe
-        , package = Package.WithoutPackage
         }
 
 let
@@ -168,12 +153,10 @@ let
       [ { qualification = Qualification.QualifiedPre
         , alias = Alias.WithoutAlias
         , safe = Safe.WithoutSafe
-        , package = Package.WithoutPackage
         }
       , { qualification = Qualification.QualifiedPost
         , alias = Alias.WithoutAlias
         , safe = Safe.WithoutSafe
-        , package = Package.WithoutPackage
         }
       ]
 
@@ -185,12 +168,10 @@ let
         [ { qualification = Qualification.QualifiedPre
           , alias = Alias.WithAlias aliasName
           , safe = Safe.WithoutSafe
-          , package = Package.WithoutPackage
           }
         , { qualification = Qualification.QualifiedPost
           , alias = Alias.WithAlias aliasName
           , safe = Safe.WithoutSafe
-          , package = Package.WithoutPackage
           }
         ]
 
@@ -204,24 +185,6 @@ let
     onlySafe =
       \(imports : List AllowedQualification) ->
         map AllowedQualification AllowedQualification setWithSafe imports
-
-let
-    -- Mark an import as being a package import and what the package is.
-    setWithPackage =
-      \(packageName : Text) ->
-      \(import : AllowedQualification) ->
-        import // { package = Package.WithPackage packageName }
-
-let
-    -- Modify a list of `AllowedQualification` to only allow package imports
-    onlyPackage =
-      \(packageName : Text) ->
-      \(imports : List AllowedQualification) ->
-        map
-          AllowedQualification
-          AllowedQualification
-          (setWithPackage packageName)
-          imports
 
 let
     -- Set minimum documented rule, to make writing configs more ergonomic
@@ -311,7 +274,6 @@ in  { Config =
     , qualifiedEither
     , qualifiedEitherAs
     , onlySafe
-    , onlyPackage
     , Dependency
     , TreeName
     , ModuleName

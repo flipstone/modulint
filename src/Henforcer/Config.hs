@@ -77,7 +77,6 @@ qualificationScheme =
       <$> Dhall.field (T.pack "qualification") qualification
       <*> Dhall.field (T.pack "alias") alias
       <*> Dhall.field (T.pack "safe") safe
-      <*> Dhall.field (T.pack "package") package
 
 qualification :: Dhall.Decoder CompatGHC.ImportDeclQualifiedStyle
 qualification =
@@ -97,12 +96,6 @@ safe =
   Dhall.union $
     (const Import.WithoutSafe <$> Dhall.constructor (T.pack "WithoutSafe") Dhall.unit)
       <> (const Import.WithSafe <$> Dhall.constructor (T.pack "WithSafe") Dhall.unit)
-
-package :: Dhall.Decoder Import.Package
-package =
-  Dhall.union $
-    (const Import.WithoutPackage <$> Dhall.constructor (T.pack "WithoutPackage") Dhall.unit)
-      <> (Import.WithPackage <$> Dhall.constructor (T.pack "WithPackage") Dhall.string)
 
 treeName :: Dhall.Decoder TreeName.TreeName
 treeName =

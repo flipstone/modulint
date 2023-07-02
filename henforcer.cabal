@@ -45,7 +45,6 @@ library henforcer-internal
       Henforcer.Import.MaxOpenUnaliasedImports
       Henforcer.Import.Scheme
       Henforcer.Import.Scheme.Alias
-      Henforcer.Import.Scheme.Package
       Henforcer.Import.Scheme.Safe
       Henforcer.Import.Scheme.Scheme
       Henforcer.ImportCheck.Check
