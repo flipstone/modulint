@@ -80,7 +80,6 @@ library henforcer-internal
     , ghc
     , haddock-api
     , optparse-applicative >=0.14 && <0.18
-    , silently >=1.2 && <1.3
     , text
     , unliftio
 
@@ -123,7 +122,6 @@ library
     , ghc
     , haddock-api
     , optparse-applicative >=0.14 && <0.18
-    , silently >=1.2 && <1.3
     , text
     , unliftio
 

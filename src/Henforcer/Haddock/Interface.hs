@@ -11,8 +11,6 @@ module Henforcer.Haddock.Interface
   ) where
 
 import qualified Documentation.Haddock as Haddock
-import qualified System.IO as SysIO
-import qualified System.IO.Silently as Silently
 import qualified UnliftIO
 
 import qualified CompatGHC
@@ -33,13 +31,13 @@ tryCreateInterfaces moduleSummary =
         Right nonEmptyIfaces -> Right nonEmptyIfaces
 
 {- | silentlyCreate will create the Haddock interfaces for a given set of files. This uses 'try' to
- handle exceptions, so that creating interfaces does not cause a ghc panic because we do not
- attempt to load any dependencies. Output is to stdout for the operation is silenced as
- creating the interface would print for every import of a dependency otherwise.
+ handle exceptions, so that creating interfaces does not cause a ghc panic because we do not attempt
+ to load any dependencies. Care is also taken to use flags for Haddock to be silent as creating the
+ interface would print for every import of a dependency otherwise.
 -}
 silentlyCreate :: [String] -> IO (Either UnliftIO.SomeException [Haddock.Interface])
 silentlyCreate =
-  Silently.silence . UnliftIO.try . Haddock.createInterfaces []
+  UnliftIO.try . Haddock.createInterfaces [Haddock.Flag_Verbosity "0", Haddock.Flag_NoWarnings]
 
 -- | The various errors we can encounter processing haddock information.
 data HaddockError
