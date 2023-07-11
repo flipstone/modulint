@@ -1,7 +1,7 @@
 let Ml = ./.henforcer/package.dhall
 
 in  Ml.Config::{
-    , sourcePaths = [ "." ]
+    , sourcePaths = [ "src" ]
     , treeDependencies =
       [ { moduleTree = "PetStore", dependencies = [ "Service" ] } ]
     , encapsulatedTrees = [ "Service.ThirdPartyPetsSite" ]

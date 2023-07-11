@@ -13,7 +13,6 @@ module Henforcer.HaddockCheck.DocumentationRule
   ) where
 
 import qualified Data.Map.Strict as M
-import qualified Data.Maybe as Maybe
 import qualified Data.Text as T
 import qualified Dhall
 
@@ -67,7 +66,14 @@ documentationRulesDecoder =
 -- | Determines if the documentation rules apply to a given module
 documentationRuleAppliesToModule :: DocumentationRules -> CompatGHC.ModuleName -> Bool
 documentationRuleAppliesToModule rules modName =
-  Maybe.isJust (globalDocumentationAmount rules)
+  globalDocumentationAmountRuleApplies (globalDocumentationAmount rules)
     || ( M.member modName (perModuleDocumentationAmounts rules)
           || M.member modName (moduleHeaderRules rules)
        )
+
+-- | The global documentation rule should apply only if it is set and it isn't exactly set to say a
+-- minimum of 0, which would be pointless to check anyway.
+globalDocumentationAmountRuleApplies :: Maybe DocumentationAmountRule -> Bool
+globalDocumentationAmountRuleApplies Nothing = False
+globalDocumentationAmountRuleApplies (Just (MinimumDocumented x)) = x /= 0
+globalDocumentationAmountRuleApplies _ = True
