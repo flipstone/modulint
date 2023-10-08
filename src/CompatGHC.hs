@@ -23,6 +23,7 @@ module CompatGHC
   , getLoc
   , ideclAs
   , ideclName
+  , ideclPkgQual
   , ideclQualified
   , ideclSafe
   , ideclHiding
@@ -38,6 +39,7 @@ module CompatGHC
   , DiagnosticReason (..)
   , Messages
   , Outputable (ppr)
+  , ParsedResult(..)
   , Plugin (..)
   , PluginRecompile (MaybeRecompile)
   , SDoc
@@ -49,6 +51,7 @@ module CompatGHC
   , colon
   , defaultPlugin
   , dot
+  , doubleQuotes
   , empty
   , hang
   , hsep
@@ -62,6 +65,7 @@ module CompatGHC
   , MsgEnvelope
   , mkSimpleDecorated
   -- internal defined helpers
+  , PkgQual(..)
   , addMessages
   , mkMessagesFromList
   , mkErrorMsgEnvelope
@@ -93,9 +97,11 @@ import GHC
   )
 import qualified GHC.Data.Bag as GHC
 import GHC.Fingerprint (Fingerprint, getFileHash)
+import qualified GHC.Hs as GHC
 import GHC.Plugins
   ( CommandLineOption
   , Outputable (ppr)
+  , ParsedResult(..)
   , Plugin (..)
   , PluginRecompile (MaybeRecompile)
   , SDoc
@@ -105,6 +111,7 @@ import GHC.Plugins
   , colon
   , defaultPlugin
   , dot
+  , doubleQuotes
   , empty
   , hang
   , hsep
@@ -164,6 +171,22 @@ addMessages :: (Diagnostic a) => Messages a -> TcM ()
 addMessages =
   GHC.addMessages . fmap diagnosticMessage
 
+-- | Helper that purposely shadows the name provided in GHC. The api from GHC changed somewhat
+-- significantly in 9.4. Once support for 9.2 is dropped this can be removed as a general cleanup
+-- step with minimal changes.
+data PkgQual =
+  NotPkgQualified
+  | PkgQualified String
+
+-- | Helper that purposely shadows the name provided in GHC. The api from GHC changed somewhat
+-- significantly in 9.4. Once support for 9.2 is dropped this can be removed as a general cleanup
+-- step with minimal changes.
+ideclPkgQual :: ImportDecl GhcRn -> PkgQual
+ideclPkgQual i =
+  case GHC.ideclPkgQual i of
+    Nothing -> NotPkgQualified
+    Just fs -> PkgQualified (GHC.unpackFS $ GHC.sl_fs fs)
+
 #endif
 
 #if __GLASGOW_HASKELL__ == 904
@@ -183,6 +206,23 @@ mkErrorMsgEnvelope msgSpan a =
 addMessages :: (Typeable a, Diagnostic a) => Messages a -> TcM ()
 addMessages =
   GHC.addMessages . fmap GHC904.TcRnUnknownMessage
+
+-- | Helper that purposely shadows the name provided in GHC. The api from GHC changed somewhat
+-- significantly in 9.4. Once support for 9.2 is dropped this can be removed as a general cleanup
+-- step with minimal changes.
+data PkgQual =
+  NotPkgQualified
+  | PkgQualified String
+
+-- | Helper that purposely shadows the name provided in GHC. The api from GHC changed somewhat
+-- significantly in 9.4. Once support for 9.2 is dropped this can be removed as a general cleanup
+-- step with minimal changes.
+ideclPkgQual :: ImportDecl GhcRn -> PkgQual
+ideclPkgQual i =
+  case GHC.ideclPkgQual i of
+    GHC.NoPkgQual -> NotPkgQualified
+    GHC.ThisPkg u -> PkgQualified (GHC.unitIdString u)
+    GHC.OtherPkg u -> PkgQualified (GHC.unitIdString u)
 
 #endif
 
