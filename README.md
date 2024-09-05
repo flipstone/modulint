@@ -1,3 +1,5 @@
+# modulint has been retired, please see the successor project: https://github.com/flipstone/henforcer
+
 # modulint
 
 `modulint` is a tool to help keep your forest of Haskell modules organized
